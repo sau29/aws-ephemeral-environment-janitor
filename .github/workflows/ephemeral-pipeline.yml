@@ -1,0 +1,71 @@
+name: Ephemeral Environment Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      env_name:
+        description: "Environment name for the ephemeral lab"
+        required: true
+        default: "dev"
+      subnet_id:
+        description: "AWS Subnet ID to validate against"
+        required: true
+
+jobs:
+  validate-and-apply:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      TF_STATE_KEY: ephemeral/${{ github.event.inputs.env_name }}/terraform.tfstate
+      ENV_NAME: ${{ github.event.inputs.env_name }}
+      SUBNET_ID: ${{ github.event.inputs.subnet_id }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform init
+        working-directory: terraform
+        run: |
+          # The S3 state bucket must exist before initialization.
+          terraform init -backend-config="key=${TF_STATE_KEY}"
+
+      - name: Terraform plan
+        working-directory: terraform
+        run: |
+          terraform plan -var="environment_name=${ENV_NAME}" -out=tfplan.binary
+
+      - name: Generate Terraform plan JSON
+        working-directory: terraform
+        run: |
+          terraform show -json tfplan.binary > tfplan.json
+
+      - name: Validate subnet IP availability
+        run: |
+          python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}"
+
+      - name: Terraform apply
+        if: success()
+        working-directory: terraform
+        run: |
+          terraform apply -auto-approve tfplan.binary
