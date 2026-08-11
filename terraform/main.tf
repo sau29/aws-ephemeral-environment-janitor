@@ -37,43 +37,31 @@ data "aws_ami" "amazon_linux_2" {
   owners = ["137112412989"]
 }
 
-resource "aws_vpc" "private" {
-  cidr_block           = "10.0.0.0/24"
-  enable_dns_support   = true
-  enable_dns_hostnames = false
-  tags = {
-    Name        = "ephemeral-janitor-private-vpc"
-    Environment = var.environment_name
-  }
+data "aws_vpc" "existing" {
+  id = var.vpc_id
 }
 
-resource "aws_subnet" "private" {
-  vpc_id                  = aws_vpc.private.id
-  cidr_block              = "10.0.0.0/28"
-  map_public_ip_on_launch = false
-  tags = {
-    Name        = "ephemeral-janitor-private-subnet"
-    Environment = var.environment_name
-  }
+data "aws_subnet" "existing" {
+  id = var.subnet_id
 }
 
 resource "aws_ec2_subnet_cidr_reservation" "reserved_capacity" {
-  subnet_id        = aws_subnet.private.id
-  cidr_block       = "10.0.0.0/29"
+  subnet_id        = data.aws_subnet.existing.id
+  cidr_block       = var.reservation_cidr_block
   reservation_type = "explicit"
 }
 
 resource "aws_security_group" "private_app" {
   name        = "ephemeral-janitor-private-sg"
   description = "Allow private traffic to port 8080"
-  vpc_id      = aws_vpc.private.id
+  vpc_id      = data.aws_vpc.existing.id
 
   ingress {
     description = "Allow internal access to 8080"
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.private.cidr_block]
+    cidr_blocks = [data.aws_vpc.existing.cidr_block]
   }
 
   egress {
@@ -93,7 +81,7 @@ resource "aws_instance" "janitor" {
   count                       = 3
   ami                         = data.aws_ami.amazon_linux_2.id
   instance_type               = "t2.micro"
-  subnet_id                   = aws_subnet.private.id
+  subnet_id                   = data.aws_subnet.existing.id
   vpc_security_group_ids      = [aws_security_group.private_app.id]
   associate_public_ip_address = false
 
