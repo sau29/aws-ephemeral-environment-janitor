@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TF_PLAN_BINARY="tfplan.binary"
+TF_PLAN_BINARY="tfplan"
 TF_PLAN_JSON="tfplan.json"
 SUBNET_ID="${1:-}"
 BACKEND_KEY="${2:-local-simulation.tfstate}"

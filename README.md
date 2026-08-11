@@ -75,13 +75,13 @@ terraform plan `
   -var="environment_name=dev" `
   -var="vpc_id=vpc-0123456789abcdef0" `
   -var="subnet_id=subnet-0123456789abcdef0" `
-  -out=tfplan.binary
+  -out=tfplan
 ```
 
 ### 4. Convert plan to JSON
 
 ```powershell
-terraform show -json tfplan.binary > tfplan.json
+terraform show -json tfplan > tfplan.json
 ```
 
 ### 5. Validate subnet IP availability
@@ -113,7 +113,7 @@ This forces the validator to treat the plan as if it needs more IPs than it actu
 
 ```powershell
 cd terraform
-terraform apply -auto-approve tfplan.binary
+terraform apply -auto-approve tfplan
 ```
 
 ## GitHub Actions deployment
