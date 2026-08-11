@@ -96,13 +96,13 @@ terraform plan `
   -var="environment_name=dev" `
   -var="vpc_id=vpc-0123456789abcdef0" `
   -var="subnet_id=subnet-0123456789abcdef0" `
-  -out=tfplan
+  -out="tfplan.binary"
 ```
 
 ### 4. Export plan to JSON
 
 ```powershell
-terraform show -json tfplan > tfplan.json
+terraform show -json tfplan.binary > tfplan.json
 ```
 
 ### 5. Validate subnet IP availability
@@ -130,7 +130,7 @@ python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123
 
 ```powershell
 cd terraform
-terraform apply -auto-approve tfplan
+terraform apply -auto-approve tfplan.binary
 ```
 
 ## Deployment from GitHub Actions

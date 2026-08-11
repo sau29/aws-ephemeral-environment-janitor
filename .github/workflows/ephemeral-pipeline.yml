@@ -71,12 +71,12 @@ jobs:
             -var="environment_name=${ENV_NAME}" \
             -var="vpc_id=${VPC_ID}" \
             -var="subnet_id=${SUBNET_ID}" \
-            -out=tfplan
+            -out="tfplan.binary"
 
       - name: Generate Terraform plan JSON
         working-directory: terraform
         run: |
-          terraform show -json tfplan > tfplan.json
+          terraform show -json tfplan.binary > tfplan.json
 
       - name: Validate subnet IP availability
         run: |
@@ -93,4 +93,4 @@ jobs:
         if: success()
         working-directory: terraform
         run: |
-          terraform apply -auto-approve tfplan
+          terraform apply -auto-approve tfplan.binary
