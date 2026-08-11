@@ -102,7 +102,7 @@ terraform plan `
 ### 4. Export plan to JSON
 
 ```powershell
-terraform show -json tfplan.binary > tfplan.json
+terraform show -json tfplan.binary | Out-File -Encoding utf8 tfplan.json
 ```
 
 ### 5. Validate subnet IP availability

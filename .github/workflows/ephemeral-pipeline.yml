@@ -76,7 +76,7 @@ jobs:
       - name: Generate Terraform plan JSON
         working-directory: terraform
         run: |
-          terraform show -json tfplan.binary > tfplan.json
+          terraform show -json tfplan.binary | Out-File -Encoding utf8 tfplan.json
 
       - name: Validate subnet IP availability
         run: |
