@@ -36,7 +36,7 @@ This implementation covers:
 - An existing AWS VPC ID and Subnet ID
   - `aws ec2 describe-vpcs --query 'Vpcs[*].VpcId' --output table`
   - `aws ec2 describe-subnets --query 'Subnets[*].{Id:SubnetId,Vpc:VpcId,Cidr:CidrBlock,Available:AvailableIpAddressCount}' --output table`
-  - Note: update the override simulation variables only when testing failure scenarios; leave them blank for normal deployment.
+  - Note: the GitHub workflow supports `test_fail_deployment=true` to simulate subnet IP exhaustion; leave it false for normal deployment.
 - An existing S3 bucket for Terraform remote state
   - `aws s3api head-bucket --bucket your-bucket-name`
 - GitHub repository secrets configured for AWS credentials when using GitHub Actions
@@ -96,13 +96,13 @@ terraform plan `
   -var="environment_name=dev" `
   -var="vpc_id=vpc-0123456789abcdef0" `
   -var="subnet_id=subnet-0123456789abcdef0" `
-  -out="tfplan.binary"
+  -out="tfplan"
 ```
 
 ### 4. Export plan to JSON
 
 ```powershell
-terraform show -json tfplan.binary | Out-File -Encoding utf8 tfplan.json
+terraform show -json tfplan > tfplan.json
 ```
 
 ### 5. Validate subnet IP availability
@@ -130,7 +130,7 @@ python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123
 
 ```powershell
 cd terraform
-terraform apply -auto-approve tfplan.binary
+terraform apply -auto-approve tfplan
 ```
 
 ## Deployment from GitHub Actions
@@ -152,8 +152,7 @@ The workflow defined in `.github/workflows/ephemeral-pipeline.yml` requires:
 
 Optional simulation inputs:
 
-- `override_required_ips` — optional simulation override for required private IP count
-- `override_available_ips` — optional simulation override for available private IP count
+- `test_fail_deployment` — set to `true` to enable a subnet CIDR reservation and simulate IP exhaustion during deployment
 
 ### Run via GitHub UI
 
@@ -167,6 +166,17 @@ Optional simulation inputs:
 
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
+  --field env_name=dev `
+  --field vpc_id=vpc-0123456789abcdef0 `
+  --field subnet_id=subnet-0123456789abcdef0
+```
+
+## Destroy from GitHub Actions
+
+Run the `Destroy Ephemeral Environment` workflow when you want to teardown the deployed resources later.
+
+```powershell
+gh workflow run ephemeral-destroy.yml `
   --field env_name=dev `
   --field vpc_id=vpc-0123456789abcdef0 `
   --field subnet_id=subnet-0123456789abcdef0
