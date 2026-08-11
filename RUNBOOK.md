@@ -24,12 +24,23 @@ This implementation covers:
 ## Prerequisites
 
 - Windows PowerShell or another terminal
+  - `pwsh` or `powershell` on Windows
+  - `bash` / `zsh` on macOS/Linux
 - Python 3.11 installed
+  - `python --version`
 - Terraform installed and on PATH
+  - `terraform version`
 - AWS CLI installed and configured with valid credentials
+  - `aws --version`
+  - `aws configure`
 - An existing AWS VPC ID and Subnet ID
+  - `aws ec2 describe-vpcs --query 'Vpcs[*].VpcId' --output table`
+  - `aws ec2 describe-subnets --query 'Subnets[*].{Id:SubnetId,Vpc:VpcId,Cidr:CidrBlock}' --output table`
 - An existing S3 bucket for Terraform remote state
+  - `aws s3api head-bucket --bucket your-bucket-name`
 - GitHub repository secrets configured for AWS credentials when using GitHub Actions
+  - `gh secret set AWS_ACCESS_KEY_ID`
+  - `gh secret set AWS_SECRET_ACCESS_KEY`
 
 ## Repository layout
 
