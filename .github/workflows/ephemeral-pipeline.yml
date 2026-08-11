@@ -13,6 +13,14 @@ on:
       subnet_id:
         description: "AWS Subnet ID to validate against"
         required: true
+      override_required_ips:
+        description: "Optional simulation override for required private IP count"
+        required: false
+        default: ""
+      override_available_ips:
+        description: "Optional simulation override for available private IP count"
+        required: false
+        default: ""
 
 jobs:
   validate-and-apply:
@@ -23,6 +31,8 @@ jobs:
       ENV_NAME: ${{ github.event.inputs.env_name }}
       VPC_ID: ${{ github.event.inputs.vpc_id }}
       SUBNET_ID: ${{ github.event.inputs.subnet_id }}
+      OVERRIDE_REQUIRED_IPS: ${{ github.event.inputs.override_required_ips }}
+      OVERRIDE_AVAILABLE_IPS: ${{ github.event.inputs.override_available_ips }}
 
     steps:
       - name: Checkout repository
@@ -70,7 +80,14 @@ jobs:
 
       - name: Validate subnet IP availability
         run: |
-          python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}"
+          EXTRA_ARGS=""
+          if [ -n "${OVERRIDE_REQUIRED_IPS}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --override-required-ips=${OVERRIDE_REQUIRED_IPS}"
+          fi
+          if [ -n "${OVERRIDE_AVAILABLE_IPS}" ]; then
+            EXTRA_ARGS="${EXTRA_ARGS} --override-available-ips=${OVERRIDE_AVAILABLE_IPS}"
+          fi
+          python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}" $EXTRA_ARGS
 
       - name: Terraform apply
         if: success()

@@ -79,6 +79,24 @@ cd ..
 .\.venv\Scripts\python.exe python/scripts/validate_subnet_ips.py terraform/tfplan.json subnet-0123456789abcdef0
 ```
 
+### 5a. Simulate failure with a lower available IP count
+
+```powershell
+cd ..
+.\.venv\Scripts\python.exe python/scripts/validate_subnet_ips.py terraform/tfplan.json subnet-0123456789abcdef0 --override-available-ips=1
+```
+
+This forces the validator to fail even if the real subnet has more IPs.
+
+### 5b. Simulate failure by overriding required IPs
+
+```powershell
+cd ..
+.\.venv\Scripts\python.exe python/scripts/validate_subnet_ips.py terraform/tfplan.json subnet-0123456789abcdef0 --override-required-ips=10
+```
+
+This forces the validator to treat the plan as if it needs more IPs than it actually does.
+
 ### 6. Apply Terraform if validation passes
 
 ```powershell
@@ -102,6 +120,11 @@ The workflow is defined in `.github/workflows/ephemeral-pipeline.yml` and requir
 - `env_name` — environment name, e.g. `dev`
 - `vpc_id` — existing AWS VPC ID
 - `subnet_id` — existing AWS Subnet ID
+
+Optional simulation inputs:
+
+- `override_required_ips` — optional simulation override for required private IP count
+- `override_available_ips` — optional simulation override for available private IP count
 
 ### Trigger from GitHub UI
 
@@ -163,4 +186,7 @@ aws ec2 describe-volumes `
 
 - The code now uses an existing VPC and Subnet rather than creating new networking.
 - The subnet validation step uses `validate_subnet_ips.py` and an AWS `describe_subnets` call.
-- If the workflow fails due to validation, fix the subnet or use a larger Subnet CIDR before retrying.
+- If the workflow fails due to validation, Terraform apply is skipped and no new resources are created.
+- This behavior prevents bad deployments and avoids consuming subnet capacity.
+- Stale resources from previous runs are not cleaned by this preflight check; they are handled separately by the cleanup/janitor logic after resources already exist.
+- If validation fails, the project still benefits by stopping the deployment before any new infrastructure is provisioned.

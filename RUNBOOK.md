@@ -100,6 +100,20 @@ cd ..
 python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0
 ```
 
+### 5a. Simulate failure with a lower available IP count
+
+```powershell
+cd ..
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0 --override-available-ips=1
+```
+
+### 5b. Simulate failure by overriding required IPs
+
+```powershell
+cd ..
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0 --override-required-ips=10
+```
+
 ### 6. Apply Terraform
 
 ```powershell
@@ -123,6 +137,11 @@ The workflow defined in `.github/workflows/ephemeral-pipeline.yml` requires:
 - `env_name` — environment name (for state key and tags)
 - `vpc_id` — existing VPC ID
 - `subnet_id` — existing Subnet ID
+
+Optional simulation inputs:
+
+- `override_required_ips` — optional simulation override for required private IP count
+- `override_available_ips` — optional simulation override for available private IP count
 
 ### Run via GitHub UI
 
@@ -192,4 +211,7 @@ aws ec2 describe-volumes `
 
 - This repository expects an existing VPC/subnet rather than creating new networking.
 - The workflow validates subnet capacity before applying Terraform.
+- If validation fails, Terraform apply is skipped and no new resources are created.
+- This preflight failure handling prevents bad deployments and avoids consuming subnet capacity.
+- Stale resources from prior deployments are not handled by this validator; that is the responsibility of the cleanup/janitor logic after resources already exist.
 - The local validation and GitHub workflow use the same deployment logic.

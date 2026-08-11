@@ -53,7 +53,7 @@ def count_private_ip_resources(plan: dict) -> int:
     if not isinstance(resource_changes, list):
         raise ValueError("Terraform plan JSON 'resource_changes' must be a list")
 
-    count = 4090
+    count = 0
     for resource in resource_changes:
         if not isinstance(resource, dict):
             continue
@@ -115,6 +115,18 @@ def parse_args() -> argparse.Namespace:
         type=str,
         help="AWS Subnet ID to query for available private IP addresses.",
     )
+    parser.add_argument(
+        "--override-required-ips",
+        type=int,
+        default=None,
+        help="Optional override for the required private IP count, used only for simulation/testing.",
+    )
+    parser.add_argument(
+        "--override-available-ips",
+        type=int,
+        default=None,
+        help="Optional override for available private IP count, used only for simulation/testing.",
+    )
     return parser.parse_args()
 
 
@@ -132,17 +144,31 @@ def main() -> int:
         print(f"ERROR: invalid Terraform plan: {exc}", file=sys.stderr)
         return 1
 
+    if args.override_required_ips is not None:
+        print(
+            f"DEBUG: overriding required IPs to {args.override_required_ips}",
+            file=sys.stderr,
+        )
+        required_ips = args.override_required_ips
+
     if required_ips == 0:
         print(
             f"PASS: no private IP-consuming resources found in plan for subnet {args.subnet_id}."
         )
         return 0
 
-    try:
-        available_ips = get_subnet_available_ips(args.subnet_id)
-    except RuntimeError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        return 1
+    if args.override_available_ips is not None:
+        print(
+            f"DEBUG: overriding available IPs to {args.override_available_ips}",
+            file=sys.stderr,
+        )
+        available_ips = args.override_available_ips
+    else:
+        try:
+            available_ips = get_subnet_available_ips(args.subnet_id)
+        except RuntimeError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            return 1
 
     if available_ips < required_ips:
         deficit = required_ips - available_ips

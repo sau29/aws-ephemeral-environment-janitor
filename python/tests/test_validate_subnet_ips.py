@@ -110,3 +110,40 @@ def test_validate_subnet_ips_fail(monkeypatch, capsys, tmp_path):
     assert "RequiredIPs=3" in captured.out
     assert "AvailableIPs=2" in captured.out
     assert "Deficit=1" in captured.out
+
+
+@mock_aws
+def test_validate_subnet_ips_override_available_ips(monkeypatch, capsys, tmp_path):
+    plan_file = write_tfplan_file(tmp_path / "tfplan.json", required_resources=2)
+    subnet_id = create_test_subnet()
+
+    original_client = boto3.client
+
+    def patched_client(service_name, *args, **kwargs):
+        if service_name == "ec2":
+            client = original_client(
+                service_name, region_name="us-east-1", *args, **kwargs
+            )
+            return PatchedEC2Client(client, available_ip_count=5)
+        return original_client(service_name, *args, **kwargs)
+
+    monkeypatch.setattr(validate.boto3, "client", patched_client)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "validate_subnet_ips.py",
+            str(plan_file),
+            subnet_id,
+            "--override-available-ips=1",
+        ],
+    )
+
+    exit_code = validate.main()
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "FAILURE: insufficient available private IP addresses." in captured.out
+    assert "RequiredIPs=2" in captured.out
+    assert "AvailableIPs=1" in captured.out
+    assert "Deficit=1" in captured.out
