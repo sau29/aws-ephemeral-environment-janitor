@@ -18,7 +18,7 @@ def load_tfplan(path: Path) -> dict:
     text = None
     encoding_used = None
 
-    for encoding in ("utf-8-sig", "utf-8", "utf-16"):
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "utf-16-le", "utf-16-be"):
         try:
             text = raw_bytes.decode(encoding)
             encoding_used = encoding
