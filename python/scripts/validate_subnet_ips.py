@@ -18,29 +18,39 @@ def load_tfplan(path: Path) -> dict:
     text = None
     encoding_used = None
 
+    decode_errors = []
+    json_errors = []
+
     for encoding in ("utf-8-sig", "utf-8", "utf-16", "utf-16-le", "utf-16-be"):
         try:
             text = raw_bytes.decode(encoding)
-            encoding_used = encoding
-            break
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as exc:
+            decode_errors.append((encoding, str(exc)))
             continue
 
-    if text is None:
+        try:
+            parsed = json.loads(text)
+            encoding_used = encoding
+            print(
+                f"DEBUG: loaded plan {path} with encoding={encoding_used} "
+                f"(first bytes={raw_bytes[:4]!r})",
+                file=sys.stderr,
+            )
+            return parsed
+        except json.JSONDecodeError as exc:
+            json_errors.append((encoding, str(exc)))
+            continue
+
+    if decode_errors:
         raise ValueError(
-            f"Could not decode Terraform plan file {path} as UTF-8 or UTF-16"
+            f"Could not decode Terraform plan file {path} as UTF-8 or UTF-16. "
+            f"Decode errors: {decode_errors}"
         )
 
-    print(
-        f"DEBUG: loaded plan {path} with encoding={encoding_used} "
-        f"(first bytes={raw_bytes[:4]!r})",
-        file=sys.stderr,
+    raise ValueError(
+        f"Invalid JSON in Terraform plan file: {path}. "
+        f"Tried encodings: {json_errors}"
     )
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Invalid JSON in Terraform plan file: {path}: {exc}") from exc
 
 
 def count_private_ip_resources(plan: dict) -> int:

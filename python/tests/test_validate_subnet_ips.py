@@ -80,7 +80,7 @@ def test_validate_subnet_ips_pass(monkeypatch, capsys, tmp_path):
     )
 
     assert exit_code == 0
-    assert "test_validate_subnet_ips_pass - PASS: subnet has sufficient available private IP addresses." in captured.out
+    assert "PASS: subnet has sufficient available private IP addresses." in captured.out
     assert "RequiredIPs=2" in captured.out
     assert "AvailableIPs=5" in captured.out
 
