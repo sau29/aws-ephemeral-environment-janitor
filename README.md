@@ -33,7 +33,8 @@ This implementation:
   - `aws configure`
 - An existing AWS VPC ID and Subnet ID
   - `aws ec2 describe-vpcs --query 'Vpcs[*].VpcId' --output table`
-  - `aws ec2 describe-subnets --query 'Subnets[*].{Id:SubnetId,Vpc:VpcId,Cidr:CidrBlock}' --output table`
+  - `aws ec2 describe-subnets --query 'Subnets[*].{Id:SubnetId,Vpc:VpcId,Cidr:CidrBlock,Available:AvailableIpAddressCount}' --output table`
+  - Note: update the override simulation variables only when testing failure scenarios; leave them blank for normal deployment.
 - An S3 bucket already created for Terraform remote state
   - `aws s3api head-bucket --bucket your-bucket-name`
 - GitHub repository secrets configured for AWS credentials if using GitHub Actions
