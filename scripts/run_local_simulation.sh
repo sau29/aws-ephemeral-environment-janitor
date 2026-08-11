@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TF_PLAN_BINARY="tfplan.binary"
+TF_PLAN="tfplan"
 TF_PLAN_JSON="tfplan.json"
 SUBNET_ID="${1:-}"
 BACKEND_KEY="${2:-local-simulation.tfstate}"
@@ -15,22 +15,28 @@ if [[ -z "$SUBNET_ID" ]]; then
   exit 1
 fi
 
-if [[ ! -x "./.venv/Scripts/python.exe" ]]; then
-  echo "ERROR: Virtual environment not found. Activate or create .venv first."
+PYTHON=""
+if [[ -x "./.venv/bin/python" ]]; then
+  PYTHON="./.venv/bin/python"
+elif [[ -x "./.venv/Scripts/python.exe" ]]; then
+  PYTHON="./.venv/Scripts/python.exe"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON="python"
+else
+  echo "ERROR: Python executable not found. Activate or create .venv first or have python on PATH."
   exit 1
 fi
-
-PYTHON="./.venv/Scripts/python.exe"
 TERRAFORM="terraform"
 
 echo "=== Terraform init ==="
 $TERRAFORM init -backend-config="key=$BACKEND_KEY"
 
 echo "=== Terraform plan ==="
-$TERRAFORM plan -var="environment_name=$ENVIRONMENT_NAME" -out="$TF_PLAN_BINARY"
+$TERRAFORM plan -var="environment_name=$ENVIRONMENT_NAME" -out="$TF_PLAN"
 
 echo "=== Terraform show JSON ==="
-$TERRAFORM show -json "$TF_PLAN_BINARY" > "$TF_PLAN_JSON"
+# On Unix shells the redirect preserves the emitted encoding (usually UTF-8)
+$TERRAFORM show -json "$TF_PLAN" > "$TF_PLAN_JSON"
 
 echo "=== Validate subnet IPs ==="
 if ! $PYTHON python/scripts/validate_subnet_ips.py "$TF_PLAN_JSON" "$SUBNET_ID"; then
@@ -40,9 +46,9 @@ else
   exit 1
 fi
 
-echo "=== Terraform apply (expected partial failure due to IP exhaustion) ==="
+  echo "=== Terraform apply (expected partial failure due to IP exhaustion) ==="
 set +e
-$TERRAFORM apply -auto-approve "$TF_PLAN_BINARY"
+  $TERRAFORM apply -auto-approve "$TF_PLAN"
 APPLY_EXIT_CODE=$?
 set -e
 

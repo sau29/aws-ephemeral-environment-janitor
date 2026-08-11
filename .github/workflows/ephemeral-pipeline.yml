@@ -71,12 +71,13 @@ jobs:
             -var="environment_name=${ENV_NAME}" \
             -var="vpc_id=${VPC_ID}" \
             -var="subnet_id=${SUBNET_ID}" \
-            -out="tfplan.binary"
+            -out=tfplan
 
       - name: Generate Terraform plan JSON
         working-directory: terraform
         run: |
-          python3 -c "import subprocess; open('tfplan.json', 'wb').write(subprocess.check_output(['terraform', 'show', '-json', 'tfplan.binary']))"
+          # Use the shell redirect on Linux runners so the output is written as emitted (UTF-8)
+          terraform show -json tfplan > tfplan.json
 
       - name: Validate subnet IP availability
         run: |
@@ -93,4 +94,4 @@ jobs:
         if: success()
         working-directory: terraform
         run: |
-          terraform apply -auto-approve tfplan.binary
+          terraform apply -auto-approve tfplan
