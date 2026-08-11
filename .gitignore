@@ -39,3 +39,8 @@ crash.log
 
 # Logs
 *.log
+
+*.tfplan
+*.binary
+tfplan.json
+terraform/tfplan.json
