@@ -18,8 +18,8 @@ variable "subnet_id" {
   description = "The ID of the existing AWS subnet where janitor instances will be launched."
 }
 
-variable "reservation_cidr_block" {
-  type        = string
-  default     = "10.0.0.0/29"
-  description = "The CIDR block to reserve inside the existing subnet."
+variable "enable_subnet_reservation" {
+  type    = bool
+  default = false
+  description = "When true, create an aws_ec2_subnet_cidr_reservation using the subnet's CIDR to simulate IP exhaustion."
 }

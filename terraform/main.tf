@@ -46,8 +46,9 @@ data "aws_subnet" "existing" {
 }
 
 resource "aws_ec2_subnet_cidr_reservation" "reserved_capacity" {
+  count            = var.enable_subnet_reservation ? 1 : 0
   subnet_id        = data.aws_subnet.existing.id
-  cidr_block       = var.reservation_cidr_block
+  cidr_block       = data.aws_subnet.existing.cidr_block
   reservation_type = "explicit"
 }
 

@@ -13,14 +13,10 @@ on:
       subnet_id:
         description: "AWS Subnet ID to validate against"
         required: true
-      override_required_ips:
-        description: "Optional simulation override for required private IP count"
+      test_fail_deployment:
+        description: "When 'true', enable subnet CIDR reservation to simulate IP exhaustion"
         required: false
-        default: ""
-      override_available_ips:
-        description: "Optional simulation override for available private IP count"
-        required: false
-        default: ""
+        default: "false"
 
 jobs:
   validate-and-apply:
@@ -31,8 +27,7 @@ jobs:
       ENV_NAME: ${{ github.event.inputs.env_name }}
       VPC_ID: ${{ github.event.inputs.vpc_id }}
       SUBNET_ID: ${{ github.event.inputs.subnet_id }}
-      OVERRIDE_REQUIRED_IPS: ${{ github.event.inputs.override_required_ips }}
-      OVERRIDE_AVAILABLE_IPS: ${{ github.event.inputs.override_available_ips }}
+      TEST_FAIL_DEPLOYMENT: ${{ github.event.inputs.test_fail_deployment }}
 
     steps:
       - name: Checkout repository
@@ -73,6 +68,7 @@ jobs:
             -var="environment_name=${ENV_NAME}" \
             -var="vpc_id=${VPC_ID}" \
             -var="subnet_id=${SUBNET_ID}" \
+            -var="enable_subnet_reservation=${TEST_FAIL_DEPLOYMENT}" \
             -out=tfplan
 
       - name: Generate Terraform plan JSON
@@ -83,14 +79,7 @@ jobs:
 
       - name: Validate subnet IP availability
         run: |
-          EXTRA_ARGS=""
-          if [ -n "${OVERRIDE_REQUIRED_IPS}" ]; then
-            EXTRA_ARGS="${EXTRA_ARGS} --override-required-ips=${OVERRIDE_REQUIRED_IPS}"
-          fi
-          if [ -n "${OVERRIDE_AVAILABLE_IPS}" ]; then
-            EXTRA_ARGS="${EXTRA_ARGS} --override-available-ips=${OVERRIDE_AVAILABLE_IPS}"
-          fi
-          python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}" $EXTRA_ARGS
+          python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}"
 
       - name: Terraform apply
         if: success()
