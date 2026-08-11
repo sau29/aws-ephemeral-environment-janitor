@@ -76,7 +76,7 @@ jobs:
       - name: Generate Terraform plan JSON
         working-directory: terraform
         run: |
-          terraform show -json tfplan.binary | Out-File -Encoding utf8 tfplan.json
+          python3 -c "import subprocess; open('tfplan.json', 'wb').write(subprocess.check_output(['terraform', 'show', '-json', 'tfplan.binary']))"
 
       - name: Validate subnet IP availability
         run: |
