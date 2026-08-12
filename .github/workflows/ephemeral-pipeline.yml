@@ -17,6 +17,10 @@ on:
         description: "When 'true', enable subnet CIDR reservation to simulate IP exhaustion"
         required: false
         default: "false"
+      destroy:
+        description: "Set to 'true' to destroy the deployed environment"
+        required: false
+        default: "false"
 
 jobs:
   validate-and-apply:
@@ -28,6 +32,7 @@ jobs:
       VPC_ID: ${{ github.event.inputs.vpc_id }}
       SUBNET_ID: ${{ github.event.inputs.subnet_id }}
       TEST_FAIL_DEPLOYMENT: ${{ github.event.inputs.test_fail_deployment }}
+      DESTROY: ${{ github.event.inputs.destroy }}
 
     steps:
       - name: Checkout repository
@@ -62,6 +67,7 @@ jobs:
           terraform init -backend-config="key=${TF_STATE_KEY}"
 
       - name: Terraform plan
+        if: env.DESTROY != 'true'
         working-directory: terraform
         run: |
           terraform plan \
@@ -72,17 +78,29 @@ jobs:
             -out=tfplan
 
       - name: Generate Terraform plan JSON
+        if: env.DESTROY != 'true'
         working-directory: terraform
         run: |
           # Use the shell redirect on Linux runners so the output is written as emitted (UTF-8)
           terraform show -json tfplan > tfplan.json
 
       - name: Validate subnet IP availability
+        if: env.DESTROY != 'true'
         run: |
           python ./python/scripts/validate_subnet_ips.py ./terraform/tfplan.json "${SUBNET_ID}"
 
       - name: Terraform apply
-        if: success()
+        if: success() && env.DESTROY != 'true'
         working-directory: terraform
         run: |
           terraform apply -auto-approve tfplan
+
+      - name: Terraform destroy
+        if: env.DESTROY == 'true'
+        working-directory: terraform
+        run: |
+          terraform destroy -auto-approve \
+            -var="environment_name=${ENV_NAME}" \
+            -var="vpc_id=${VPC_ID}" \
+            -var="subnet_id=${SUBNET_ID}" \
+            -var="enable_subnet_reservation=${TEST_FAIL_DEPLOYMENT}"
