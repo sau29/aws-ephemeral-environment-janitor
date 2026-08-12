@@ -1,11 +1,3 @@
-## Short answer
-
-No — the current `moto`-based tests only cover Python logic that calls AWS SDK clients. They do not execute or validate Terraform manifests.
-
-`moto` mocks AWS services like S3 and EC2 for Python unit tests, but Terraform is a separate tool that generates AWS calls from HCL. So the repo currently has Python tests, not Terraform tests.
-
----
-
 ## File-by-file explanation
 
 ### variables.tf
@@ -83,12 +75,13 @@ No — the current `moto`-based tests only cover Python logic that calls AWS SDK
   2. Setup Python 3.11
   3. Install Python dependencies
   4. Configure AWS credentials
-  5. Setup Terraform
+  5. Setup Terraform (with terraform_wrapper: false to ensure clean JSON output)
   6. `terraform init`
-  7. `terraform plan`
-  8. `terraform show -json`
-  9. Run validate_subnet_ips.py
-  10. `terraform apply` if validation succeeds
+  7. terraform plan (skipped if destroy == 'true')
+  8. terraform show -json (skipped if destroy == 'true')
+  9. Run validate_subnet_ips.py (skipped if destroy == 'true')
+  10. terraform apply (executed only if validation succeeds and destroy != 'true')
+  11. terraform destroy (executed only if destroy == 'true')
 - This workflow ties Terraform deployment and Python validation together, but it still does not include Terraform unit testing.
 - Important backend note: `terraform init` uses an S3 backend and the referenced state bucket must already exist. The workflow passes only the `key` dynamically; backend blocks cannot use normal variables like `var.aws_region`.
 

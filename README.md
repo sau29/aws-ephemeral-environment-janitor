@@ -144,7 +144,9 @@ Optional simulation inputs:
 3. Select `Ephemeral Environment Pipeline`.
 4. Click `Run workflow`.
 5. Enter `env_name`, `vpc_id`, and `subnet_id`.
-6. Start the workflow.
+6. Enter true for test_fail_deployment if you want to enable subnet CIDR reservation to simulate IP exhaustion.
+7. Enter true for destroy if you want to destroy the deployed environment.
+8. Start the workflow.
 
 ### Trigger from GitHub CLI
 
