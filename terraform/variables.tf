@@ -19,7 +19,7 @@ variable "subnet_id" {
 }
 
 variable "enable_subnet_reservation" {
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
   description = "When true, create an aws_ec2_subnet_cidr_reservation using the subnet's CIDR to simulate IP exhaustion."
 }

@@ -45,10 +45,19 @@ data "aws_subnet" "existing" {
   id = var.subnet_id
 }
 
-resource "aws_ec2_subnet_cidr_reservation" "reserved_capacity" {
+# Block First Half: eg For /26, this creates 172.31.0.0/27 (32 IPs)
+resource "aws_ec2_subnet_cidr_reservation" "block_first_half" {
   count            = var.enable_subnet_reservation ? 1 : 0
   subnet_id        = data.aws_subnet.existing.id
-  cidr_block       = data.aws_subnet.existing.cidr_block
+  cidr_block       = cidrsubnet(data.aws_subnet.existing.cidr_block, 1, 0)
+  reservation_type = "explicit"
+}
+
+# Block Second Half: eg For /26, this creates 172.31.0.32/27 (32 IPs)
+resource "aws_ec2_subnet_cidr_reservation" "block_second_half" {
+  count            = var.enable_subnet_reservation ? 1 : 0
+  subnet_id        = data.aws_subnet.existing.id
+  cidr_block       = cidrsubnet(data.aws_subnet.existing.cidr_block, 1, 1)
   reservation_type = "explicit"
 }
 
@@ -93,6 +102,13 @@ resource "aws_instance" "janitor" {
       Environment = var.environment_name
     }
   }
+
+
+  # Ensure IP reservations are applied BEFORE attempting instance creation
+  depends_on = [
+    aws_ec2_subnet_cidr_reservation.block_first_half,
+    aws_ec2_subnet_cidr_reservation.block_second_half
+  ]
 
   tags = {
     Name        = "ephemeral-janitor-instance-${count.index + 1}"
