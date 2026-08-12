@@ -80,7 +80,7 @@ pip install -r requirements.txt
 python -m pytest -q
 ```
 
-## Deployment from Terraform
+## Deployment from Terraform - Simulating Insufficient IP Address
 
 ### 1. Initialize Terraform with S3 backend
 
@@ -91,7 +91,7 @@ terraform init -backend-config="key=ephemeral/dev/terraform.tfstate" -reconfigur
 
 > The S3 bucket must already exist and is configured in `terraform/main.tf`.
 
-### 2. Create a Terraform plan
+### 2. Create a Terraform plan, Simulating Insufficient IP Address
 
 ```powershell
 terraform plan `
@@ -127,7 +127,7 @@ python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef
 python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243 --override-required-ips=10
 ```
 
-### 6. Apply Terraform
+### 6. Apply Terraform, Simulating Insufficient IP Address, to fail the deployment.
 
 ```powershell
 terraform apply `
@@ -138,13 +138,74 @@ terraform apply `
   -auto-approve tfplan
 ```
 
+> No need for Terraform Destroy, as deployment has not happened only.
+
+
+## Deployment from Terraform
+
+### 1. Initialize Terraform with S3 backend
+
+```powershell
+cd terraform
+terraform init -backend-config="key=ephemeral/dev/terraform.tfstate" -reconfigure
+```
+
+> The S3 bucket must already exist and is configured in `terraform/main.tf`.
+
+### 2. Create a Terraform plan
+
+```powershell
+terraform plan `
+  -var="environment_name=dev" `
+  -var="vpc_id=vpc-1c9e8167" `
+  -var="subnet_id=subnet-24ef3243" `
+  -var="enable_subnet_reservation=false" `
+  -out="tfplan"
+```
+
+### 3. Export plan to JSON
+
+```powershell
+terraform show -json tfplan > tfplan.json
+```
+
+### 4. Validate subnet IP availability
+
+```powershell
+cd ..
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243
+```
+
+### 5a. Simulate failure with a lower available IP count
+
+```powershell
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243 --override-available-ips=1
+```
+
+### 5b. Simulate failure by overriding required IPs
+
+```powershell
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243 --override-required-ips=10
+```
+
+### 6. Apply Terraform
+
+```powershell
+terraform apply `
+  -var="environment_name=dev" `
+  -var="vpc_id=vpc-1c9e8167" `
+  -var="subnet_id=subnet-24ef3243" `
+  -var="enable_subnet_reservation=false" `
+  -auto-approve tfplan
+```
+
 ### 7. Destroy Terraform
 ```powershell
 terraform destroy `
   -var="environment_name=dev" `
   -var="vpc_id=vpc-1c9e8167" `
   -var="subnet_id=subnet-24ef3243" `
-  -var="enable_subnet_reservation=true"
+  -var="enable_subnet_reservation=false"
 ```
 
 
