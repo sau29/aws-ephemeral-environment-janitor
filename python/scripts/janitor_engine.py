@@ -89,14 +89,28 @@ def _detach_and_delete_enis(
     for eni in enis:
         eni_id = eni.get("NetworkInterfaceId")
         status = eni.get("Status")
-        attachment = eni.get("Attachment")
+        attachment = eni.get("Attachment") or {}
+        device_index = attachment.get("DeviceIndex")
 
         logger.info(
             "Processing ENI",
-            extra={"eni_id": eni_id, "status": status, "attachment": bool(attachment)},
+            extra={
+                "eni_id": eni_id,
+                "status": status,
+                "attachment": bool(attachment),
+                "device_index": device_index
+            },
         )
 
+        # Skip primary ENIs (DeviceIndex 0) as AWS forbids detaching eth0
         if status == "in-use" and attachment:
+            if device_index == 0:
+                logger.warning(
+                    "Skipping ENI detach: Primary network interface (device index 0) cannot be detached without terminating instance.",
+                    extra={"eni_id": eni_id}
+                )
+                continue
+
             attachment_id = attachment.get("AttachmentId")
             try:
                 ec2_client.detach_network_interface(
@@ -117,6 +131,7 @@ def _detach_and_delete_enis(
                 )
                 continue
 
+        # Try deleting available/unattached ENIs
         try:
             ec2_client.delete_network_interface(NetworkInterfaceId=eni_id)
             logger.info(
@@ -130,7 +145,6 @@ def _detach_and_delete_enis(
                 extra={"eni_id": eni_id, "error": str(exc)},
             )
     return deleted
-
 
 def lambda_handler(event: Dict[str, Any], context: Any = None) -> Dict[str, Any]:
     environment_name = event.get("environment_name")

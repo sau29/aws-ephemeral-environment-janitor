@@ -35,6 +35,7 @@ resource "aws_iam_role_policy" "lambda_janitor_policy" {
           "ec2:DeleteVolume",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DetachNetworkInterface",
+          "ec2:DescribeSecurityGroups",
           "ec2:DeleteNetworkInterface",
         ]
         Resource = "*"
