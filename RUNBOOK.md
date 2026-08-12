@@ -282,7 +282,7 @@ gh run list --workflow="ephemeral-pipeline.yml"
 5. Enter `true` for `test_fail_deployment` if you want to enable subnet CIDR reservation to simulate IP exhaustion.
 6. Run the workflow.
 
-### 2. Deploy via GitHub UI
+### 2. Deploy via GitHub CLI
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
