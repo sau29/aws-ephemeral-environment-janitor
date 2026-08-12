@@ -80,58 +80,73 @@ pip install -r requirements.txt
 python -m pytest -q
 ```
 
-### 2. Initialize Terraform with S3 backend
+## Deployment from Terraform
+
+### 1. Initialize Terraform with S3 backend
 
 ```powershell
 cd terraform
-terraform init -backend-config="key=ephemeral/dev/terraform.tfstate"
+terraform init -backend-config="key=ephemeral/dev/terraform.tfstate" -reconfigure
 ```
 
 > The S3 bucket must already exist and is configured in `terraform/main.tf`.
 
-### 3. Create a Terraform plan
+### 2. Create a Terraform plan
 
 ```powershell
 terraform plan `
   -var="environment_name=dev" `
-  -var="vpc_id=vpc-0123456789abcdef0" `
-  -var="subnet_id=subnet-0123456789abcdef0" `
+  -var="vpc_id=vpc-1c9e8167" `
+  -var="subnet_id=subnet-24ef3243" `
+  -var="enable_subnet_reservation=true" `
   -out="tfplan"
 ```
 
-### 4. Export plan to JSON
+### 3. Export plan to JSON
 
 ```powershell
 terraform show -json tfplan > tfplan.json
 ```
 
-### 5. Validate subnet IP availability
+### 4. Validate subnet IP availability
 
 ```powershell
 cd ..
-python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243
 ```
 
 ### 5a. Simulate failure with a lower available IP count
 
 ```powershell
-cd ..
-python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0 --override-available-ips=1
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243 --override-available-ips=1
 ```
 
 ### 5b. Simulate failure by overriding required IPs
 
 ```powershell
-cd ..
-python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-0123456789abcdef0 --override-required-ips=10
+python .\python\scripts\validate_subnet_ips.py terraform\tfplan.json subnet-24ef3243 --override-required-ips=10
 ```
 
 ### 6. Apply Terraform
 
 ```powershell
-cd terraform
-terraform apply -auto-approve tfplan
+terraform apply `
+  -var="environment_name=dev" `
+  -var="vpc_id=vpc-1c9e8167" `
+  -var="subnet_id=subnet-24ef3243" `
+  -var="enable_subnet_reservation=true" `
+  -auto-approve tfplan
 ```
+
+### 7. Destroy Terraform
+```powershell
+terraform destroy `
+  -var="environment_name=dev" `
+  -var="vpc_id=vpc-1c9e8167" `
+  -var="subnet_id=subnet-24ef3243" `
+  -var="enable_subnet_reservation=true"
+```
+
 
 ## Deployment from GitHub Actions
 
@@ -153,36 +168,71 @@ The workflow defined in `.github/workflows/ephemeral-pipeline.yml` requires:
 Optional simulation inputs:
 
 - `test_fail_deployment` — set to `true` to enable a subnet CIDR reservation and simulate IP exhaustion during deployment
+- `destroy` — set to `true` to destroy the deployed environment
 
-### Run via GitHub UI
 
+### Deploy via GitHub UI
 1. Go to the `Actions` tab in your GitHub repository.
 2. Select `Ephemeral Environment Pipeline`.
 3. Click `Run workflow`.
 4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
-5. Enter true for test_fail_deployment if you want to enable subnet CIDR reservation to simulate IP exhaustion.
-6. Enter true for destroy if you want to destroy the deployed environment.
+5. Enter `true` for `test_fail_deployment` if you want to enable subnet CIDR reservation to simulate IP exhaustion.
+6. Enter `true` for `destroy` if you want to destroy the deployed environment.
 7. Run the workflow.
 
-### Run via GitHub CLI
-
+### Deploy via GitHub CLI
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
-  --field vpc_id=vpc-0123456789abcdef0 `
-  --field subnet_id=subnet-0123456789abcdef0
+  --field vpc_id=vpc-1c9e8167 `
+  --field subnet_id=subnet-24ef3243
+
+To verify the execution:
+gh run list --workflow="ephemeral-pipeline.yml"  
 ```
 
-## Destroy from GitHub Actions
+### Destroy from GitHub Actions
+1. Go to the `Actions` tab in your GitHub repository.
+2. Select `Ephemeral Environment Pipeline`.
+3. Click `Run workflow`.
+4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
+5. Enter `true` for `destroy` if you want to destroy the deployed environment.
+7. Run the workflow.
 
-Run the `Destroy Ephemeral Environment` workflow when you want to teardown the deployed resources later.
-
+### Destroy via GitHub CLI
 ```powershell
-gh workflow run ephemeral-destroy.yml `
+gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
-  --field vpc_id=vpc-0123456789abcdef0 `
-  --field subnet_id=subnet-0123456789abcdef0
+  --field vpc_id=vpc-1c9e8167 `
+  --field subnet_id=subnet-24ef3243 `
+  --field destroy=true
+
+To verify the execution:
+gh run list --workflow="ephemeral-pipeline.yml"  
 ```
+
+### Simulate Insufficient IP Address via GitHub UI
+1. Go to the `Actions` tab in your GitHub repository.
+2. Select `Ephemeral Environment Pipeline`.
+3. Click `Run workflow`.
+4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
+5. Enter `true` for `test_fail_deployment` if you want to enable subnet CIDR reservation to simulate IP exhaustion.
+6. Run the workflow.
+
+### Simulate Insufficient IP Address via GitHub CLI
+```powershell
+gh workflow run ephemeral-pipeline.yml `
+  --field env_name=dev `
+  --field vpc_id=vpc-1c9e8167 `
+  --field subnet_id=subnet-24ef3243 `
+  --field test_fail_deployment=true
+
+To verify the execution:
+gh run list --workflow="ephemeral-pipeline.yml"
+
+NOTE: No need to DESTROY, as DEPLOYMENT hasn not happened.
+```
+
 
 ## AWS verification commands
 
@@ -192,7 +242,7 @@ After deployment, use these commands to verify resources.
 
 ```powershell
 aws ec2 describe-subnets `
-  --subnet-ids subnet-0123456789abcdef0 `
+  --subnet-ids subnet-24ef3243 `
   --query "Subnets[0].{Id:SubnetId,Cidr:CidrBlock,Available:AvailableIpAddressCount}" `
   --output table
 ```
@@ -239,3 +289,5 @@ aws ec2 describe-volumes `
 - This preflight failure handling prevents bad deployments and avoids consuming subnet capacity.
 - Stale resources from prior deployments are not handled by this validator; that is the responsibility of the cleanup/janitor logic after resources already exist.
 - The local validation and GitHub workflow use the same deployment logic.
+- Please delete any left over resources, post destroying environment.
+- EBS volume are configured with detele protection, so thay are expected to stay back, delete it through console or cli.
