@@ -75,11 +75,3 @@ This implementation:
 * **AWS CLI**: Installed and configured
 * **AWS Account Setup**: An existing VPC ID, Subnet ID, and pre-created S3 Bucket for Terraform remote state (`aws-ephemeral-environment-janitor-state`).
 
-## Notes
-
-- The code now uses an existing VPC and Subnet rather than creating new networking.
-- The subnet validation step uses `validate_subnet_ips.py` and an AWS `describe_subnets` call.
-- If the workflow fails due to validation, Terraform apply is skipped and no new resources are created.
-- This behavior prevents bad deployments and avoids consuming subnet capacity.
-- Stale resources from previous runs are not cleaned by this preflight check; they are handled separately by the cleanup/janitor logic after resources already exist.
-- If validation fails, the project still benefits by stopping the deployment before any new infrastructure is provisioned.

@@ -209,16 +209,16 @@ terraform destroy `
 ```
 
 
-## Deployment from GitHub Actions
+## Configuration for GitHub Actions (UI and CLI)
 
-### GitHub secrets required
+### 1. GitHub secrets required
 
 Add the following secrets to your GitHub repository:
 
 - `AWS_ACCESS_KEY_ID`
 - `AWS_SECRET_ACCESS_KEY`
 
-### Workflow inputs
+### 2. Workflow inputs
 
 The workflow defined in `.github/workflows/ephemeral-pipeline.yml` requires:
 
@@ -231,17 +231,26 @@ Optional simulation inputs:
 - `test_fail_deployment` — set to `true` to enable a subnet CIDR reservation and simulate IP exhaustion during deployment
 - `destroy` — set to `true` to destroy the deployed environment
 
-
-### Deploy via GitHub UI
+## Deployment from GitHub Actions (UI and CLI)
+### 1. Deploy via GitHub UI
 1. Go to the `Actions` tab in your GitHub repository.
 2. Select `Ephemeral Environment Pipeline`.
 3. Click `Run workflow`.
 4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
-5. Enter `true` for `test_fail_deployment` if you want to enable subnet CIDR reservation to simulate IP exhaustion.
-6. Enter `true` for `destroy` if you want to destroy the deployed environment.
+5. Enter `false` for `test_fail_deployment` Since we dont want to enable subnet CIDR reservation to simulate IP exhaustion.
+6. Enter `false` for `destroy` Since we are deploying.
 7. Run the workflow.
 
-### Deploy via GitHub CLI
+### 2. Destroy from GitHub UI
+1. Go to the `Actions` tab in your GitHub repository.
+2. Select `Ephemeral Environment Pipeline`.
+3. Click `Run workflow`.
+4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
+5. Enter `true` for `destroy` if you want to destroy the deployed environment.
+7. Run the workflow.
+
+
+### 3. Deploy via GitHub CLI
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
@@ -252,15 +261,7 @@ To verify the execution:
 gh run list --workflow="ephemeral-pipeline.yml"  
 ```
 
-### Destroy from GitHub Actions
-1. Go to the `Actions` tab in your GitHub repository.
-2. Select `Ephemeral Environment Pipeline`.
-3. Click `Run workflow`.
-4. Enter values for `env_name`, `vpc_id`, and `subnet_id`.
-5. Enter `true` for `destroy` if you want to destroy the deployed environment.
-7. Run the workflow.
-
-### Destroy via GitHub CLI
+### 4. Destroy via GitHub CLI
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
@@ -272,7 +273,8 @@ To verify the execution:
 gh run list --workflow="ephemeral-pipeline.yml"  
 ```
 
-### Simulate Insufficient IP Address via GitHub UI
+## Simulate Insufficient IP Address, Deployment from GitHub Actions (UI and CLI)
+### 1. Deploy via GitHub UI
 1. Go to the `Actions` tab in your GitHub repository.
 2. Select `Ephemeral Environment Pipeline`.
 3. Click `Run workflow`.
@@ -280,7 +282,7 @@ gh run list --workflow="ephemeral-pipeline.yml"
 5. Enter `true` for `test_fail_deployment` if you want to enable subnet CIDR reservation to simulate IP exhaustion.
 6. Run the workflow.
 
-### Simulate Insufficient IP Address via GitHub CLI
+### 2. Deploy via GitHub UI
 ```powershell
 gh workflow run ephemeral-pipeline.yml `
   --field env_name=dev `
@@ -295,7 +297,7 @@ NOTE: No need to DESTROY, as DEPLOYMENT hasn not happened.
 ```
 
 
-## AWS verification commands
+## AWS verification commands (Without Simulation)
 
 After deployment, use these commands to verify resources.
 
